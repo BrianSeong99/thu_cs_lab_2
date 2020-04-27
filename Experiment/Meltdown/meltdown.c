@@ -263,6 +263,12 @@ int main(int argc, char *argv[])
 
 	for (score = 0, i = 0; i < size; i++) {
 		ret = readbyte(fd, addr);
+
+		while(ret <= 31 || ret >= 127|| hist[ret]<=1){
+			ret = readbyte(fd, addr);
+			sched_yield();
+		}
+		
 		if (ret == -1)
 			ret = 0xff;
 		printf("read %lx = %x %c (score=%d/%d)\n",
