@@ -1,0 +1,9 @@
+get syscall_table:
+sudo cat /proc/kallsyms | grep sys_call_table
+
+copy:
+sudo cp -r /mnt/hgfs/Desktop/School/3-2/CS\ Computer\ Structure/Labs/Lab2 ~/Desktop/cs/
+
+Terminal Monitor SysCall:
+sudo cat /proc/kallsyms | grep sys_call_table_my
+

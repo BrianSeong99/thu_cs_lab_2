@@ -82,7 +82,7 @@ dev_vm_ops_fault (struct vm_area_struct *vma, struct vm_fault *vmf)
 }
 
 static const struct vm_operations_struct dev_vm_ops = { .open = dev_vm_ops_open, .close =
-    dev_vm_ops_close, .fault = dev_vm_ops_fault, };
+    dev_vm_ops_close,  }; //.fault = dev_vm_ops_fault,
 
 int
 fops_mmap (struct file *filp, struct vm_area_struct *vma)
