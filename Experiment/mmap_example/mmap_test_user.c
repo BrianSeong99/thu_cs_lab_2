@@ -7,7 +7,8 @@
 #include <time.h>
 #include <stdint.h>
 
-#define MY_MMAP_LEN (0x25000)
+// #define MY_MMAP_LEN (0x25000)
+#define MY_MMAP_LEN (256)
 #define PAGE_SIZE 4096
 
 static char *exec_name;
@@ -78,22 +79,6 @@ int main ( int argc, char **argv )
     perror("mmap operation failed");
     return -1;
   }
-
-  //printf("%s: first userspace read\n",tbuff);
-  /*
-  memcpy(sbuff, address,80);
-  printf("Initial message: %s\n", sbuff);
-  memcpy(sbuff, address+0xf00,80);
-  printf("Initial message: %s\n", sbuff);
-  memcpy(sbuff, address+0xf000,80);
-  printf("Initial message: %s\n", sbuff);
-  */
-  /*
-  for(i=0; i<MY_MMAP_LEN; i++)
-  {
-    printf("%16p: %c\n",address+i, (char)*(address+i));
-  }
-  */
 
   usleep(5000);
   for (i = 0; i < (MY_MMAP_LEN / PAGE_SIZE); i++)

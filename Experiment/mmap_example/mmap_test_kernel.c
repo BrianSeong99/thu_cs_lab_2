@@ -13,7 +13,7 @@ static struct class *devClass = NULL;
 static struct device *devDevice = NULL;
 
 #ifndef VM_RESERVED
-# define  VM_RESERVED   (VM_DONTEXPAND | VM_DONTDUMP)
+#define VM_RESERVED   (VM_DONTEXPAND | VM_DONTDUMP)
 #endif
 
 static void
@@ -82,7 +82,7 @@ dev_vm_ops_fault (struct vm_area_struct *vma, struct vm_fault *vmf)
 }
 
 static const struct vm_operations_struct dev_vm_ops = { .open = dev_vm_ops_open, .close =
-    dev_vm_ops_close,  }; //.fault = dev_vm_ops_fault,
+    dev_vm_ops_close, .fault = dev_vm_ops_fault, };
 
 int
 fops_mmap (struct file *filp, struct vm_area_struct *vma)
@@ -106,7 +106,7 @@ fops_close (struct inode *inode, struct file *filp)
 	return 0;
 }
 
-#define MY_MMAP_LEN 0x10000
+#define MY_MMAP_LEN 0x100000
 
 int
 fops_open (struct inode *inode, struct file *p_file)
@@ -119,13 +119,15 @@ fops_open (struct inode *inode, struct file *p_file)
 	info = kmalloc(sizeof(struct mmap_info), GFP_KERNEL);
 
 	// allocating memory on the heap for the data
-	data = kcalloc(0x10000, sizeof(char), GFP_KERNEL);
+	data = kcalloc(MY_MMAP_LEN, sizeof(char), GFP_KERNEL);
 	if (data == NULL)
 	{
 		printk(KERN_ERR "insufficient memory\n");
 		/* insufficient memory: you must handle this error! */
 		return ENOMEM;
 	}
+
+	printk("CZY: shared_memory_virt is 0x%p\n", data);
 
 	info->data = data;
 
